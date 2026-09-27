@@ -1,0 +1,10 @@
+{
+  "name": "Remixwallet",
+  "description": "Real-time money wallet with balance management, instant send, withdraw, linked M-Pesa phone number, and live notifications.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,209 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isParentUserValid(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+        get(/databases/$(database)/documents/users/$(userId)).data.ownerId == request.auth.uid;
+    }
+
+    // 3. Validation Blueprints (Synchronized with firebase-blueprint.json)
+    function isValidUserAccount(data) {
+      return data.keys().hasAll([
+          'ownerId', 'fullName', 'mpesaPhoneNumber', 'nationalId', 'email',
+          'balance', 'currency', 'isVerified', 'pin', 'accountTier',
+          'dailyLimit', 'dailySpent', 'useLiveDaraja', 'darajaEnvironment',
+          'darajaShortCode', 'darajaTillNumber', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'fullName', 'mpesaPhoneNumber', 'nationalId', 'email',
+          'balance', 'currency', 'isVerified', 'pin', 'accountTier',
+          'dailyLimit', 'dailySpent', 'useLiveDaraja', 'darajaEnvironment',
+          'darajaShortCode', 'darajaTillNumber', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId == request.auth.uid &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+        data.mpesaPhoneNumber is string && data.mpesaPhoneNumber.size() >= 9 && data.mpesaPhoneNumber.size() <= 20 && data.mpesaPhoneNumber.matches('^[0-9+\\-\\s]+$') &&
+        data.nationalId is string && data.nationalId.size() >= 1 && data.nationalId.size() <= 30 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 150 &&
+        data.balance is number && data.balance >= 0 && data.balance <= 100000000 &&
+        data.currency is string && data.currency.size() <= 10 && data.currency in ['KES'] &&
+        data.isVerified is bool &&
+        data.pin is string && data.pin.size() == 4 && data.pin.matches('^[0-9]{4}$') &&
+        data.accountTier is string && data.accountTier.size() <= 50 && data.accountTier in ['Tier 1 (Ksh 300,000)', 'Tier 2 (Ksh 500,000)'] &&
+        data.dailyLimit is number && data.dailyLimit >= 0 && data.dailyLimit <= 10000000 &&
+        data.dailySpent is number && data.dailySpent >= 0 && data.dailySpent <= 100000000 &&
+        data.useLiveDaraja is bool &&
+        data.darajaEnvironment is string && data.darajaEnvironment.size() <= 20 && data.darajaEnvironment in ['sandbox', 'production'] &&
+        data.darajaShortCode is string && data.darajaShortCode.size() <= 20 &&
+        data.darajaTillNumber is string && data.darajaTillNumber.size() <= 20 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll([
+          'ownerId', 'code', 'type', 'amount', 'fee',
+          'recipientName', 'recipientPhoneOrAccount', 'timestamp',
+          'status', 'notes', 'previousBalance', 'newBalance',
+          'category', 'method', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'code', 'type', 'amount', 'fee',
+          'recipientName', 'recipientPhoneOrAccount', 'timestamp',
+          'status', 'notes', 'previousBalance', 'newBalance',
+          'category', 'method', 'createdAt'
+        ]) &&
+        data.ownerId == request.auth.uid &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.code is string && data.code.size() >= 6 && data.code.size() <= 20 && data.code.matches('^[A-Z0-9]+$') &&
+        data.type is string && data.type.size() <= 30 && data.type in ['send', 'withdraw', 'deposit', 'received', 'paybill', 'buy_goods', 'balance_adjustment'] &&
+        data.amount is number && data.amount >= 0 && data.amount <= 100000000 &&
+        data.fee is number && data.fee >= 0 && data.fee <= 1000000 &&
+        data.recipientName is string && data.recipientName.size() >= 1 && data.recipientName.size() <= 120 &&
+        data.recipientPhoneOrAccount is string && data.recipientPhoneOrAccount.size() >= 1 && data.recipientPhoneOrAccount.size() <= 120 &&
+        data.timestamp is string && data.timestamp.size() >= 10 && data.timestamp.size() <= 40 &&
+        data.status is string && data.status.size() <= 20 && data.status in ['completed', 'pending', 'failed', 'cancelled'] &&
+        data.notes is string && data.notes.size() <= 300 &&
+        data.previousBalance is number && data.previousBalance >= 0 && data.previousBalance <= 100000000 &&
+        data.newBalance is number && data.newBalance >= 0 && data.newBalance <= 100000000 &&
+        data.category is string && data.category.size() <= 30 && data.category in ['transfer', 'withdrawal', 'deposit', 'merchant', 'utility', 'system'] &&
+        data.method is string && data.method.size() <= 30 && data.method in ['mpesa_phone', 'till', 'paybill', 'agent', 'atm', 'stk_push', 'manual_edit'] &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll([
+          'ownerId', 'title', 'message', 'smsText', 'timestamp',
+          'isRead', 'type', 'transactionId', 'priority', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'title', 'message', 'smsText', 'timestamp',
+          'isRead', 'type', 'transactionId', 'priority', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId == request.auth.uid &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.message is string && data.message.size() >= 1 && data.message.size() <= 500 &&
+        data.smsText is string && data.smsText.size() <= 600 &&
+        data.timestamp is string && data.timestamp.size() >= 10 && data.timestamp.size() <= 40 &&
+        data.isRead is bool &&
+        data.type is string && data.type.size() <= 20 && data.type in ['sms', 'transaction', 'security', 'system'] &&
+        data.transactionId is string && data.transactionId.size() <= 128 &&
+        data.priority is string && data.priority.size() <= 20 && data.priority in ['high', 'normal'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // 4. Collection Rules: /users/{userId}
+    match /users/{userId} {
+      // PII Isolation: Only the verified owner can get their own profile (including existence check when resource == null); no blanket list allowed
+      allow get: if isOwner(userId) && isValidId(userId) && (resource == null || resource.data.ownerId == request.auth.uid);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserAccount(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserAccount(incoming()) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          // Action 1: Balance & Daily Spent ledger update
+          incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'dailySpent', 'updatedAt']) ||
+          // Action 2: Profile & M-PESA Account edit
+          incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'mpesaPhoneNumber', 'nationalId', 'email', 'pin', 'accountTier', 'dailyLimit', 'updatedAt']) ||
+          // Action 3: Daraja Gateway configuration update
+          incoming().diff(existing()).affectedKeys().hasOnly(['useLiveDaraja', 'darajaEnvironment', 'darajaShortCode', 'darajaTillNumber', 'updatedAt'])
+        )
+      );
+
+      allow delete: if false;
+
+      // 5. Subcollection Rules: /users/{userId}/transactions/{transactionId}
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(transactionId) && (resource == null || resource.data.ownerId == request.auth.uid) && isParentUserValid(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(transactionId) &&
+          isValidTransaction(incoming()) &&
+          incoming().createdAt == request.time &&
+          isParentUserValid(userId);
+
+        // Terminal State Locking: Completed ledger transactions are immutable
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      // 6. Subcollection Rules: /users/{userId}/notifications/{notificationId}
+      match /notifications/{notificationId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(notificationId) && (resource == null || resource.data.ownerId == request.auth.uid) && isParentUserValid(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(notificationId) &&
+          isValidNotification(incoming()) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isParentUserValid(userId);
+
+        allow update: if (
+          isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(notificationId) &&
+          isValidNotification(incoming()) &&
+          existing().ownerId == request.auth.uid &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          isParentUserValid(userId) && (
+            // Action: Mark notification as read
+            incoming().diff(existing()).affectedKeys().hasOnly(['isRead', 'updatedAt'])
+          )
+        );
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(notificationId) && existing().ownerId == request.auth.uid && isParentUserValid(userId);
+      }
+    }
+  }
+}

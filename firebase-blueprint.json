@@ -1,0 +1,299 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Live M-PESA connected wallet user profile and account ledger settings",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the account owner",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full legal name on the M-PESA line",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "mpesaPhoneNumber": {
+          "type": "string",
+          "description": "Connected Safaricom M-PESA phone number in 2547XXXXXXXX format",
+          "minLength": 9,
+          "maxLength": 20,
+          "pattern": "^[0-9+\\-\\s]+$"
+        },
+        "nationalId": {
+          "type": "string",
+          "description": "Kenyan National ID or Passport number",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified user email address",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "balance": {
+          "type": "number",
+          "description": "Current live wallet balance in KES"
+        },
+        "currency": {
+          "type": "string",
+          "enum": ["KES"],
+          "maxLength": 10
+        },
+        "isVerified": {
+          "type": "boolean",
+          "description": "Whether the M-PESA line is KYC verified"
+        },
+        "pin": {
+          "type": "string",
+          "description": "4-digit M-PESA wallet security PIN",
+          "minLength": 4,
+          "maxLength": 4,
+          "pattern": "^[0-9]{4}$"
+        },
+        "accountTier": {
+          "type": "string",
+          "enum": ["Tier 1 (Ksh 300,000)", "Tier 2 (Ksh 500,000)"],
+          "maxLength": 50
+        },
+        "dailyLimit": {
+          "type": "number",
+          "description": "Maximum daily transaction limit in KES"
+        },
+        "dailySpent": {
+          "type": "number",
+          "description": "Amount spent today in KES"
+        },
+        "useLiveDaraja": {
+          "type": "boolean",
+          "description": "Whether live Safaricom Daraja API mode is enabled"
+        },
+        "darajaEnvironment": {
+          "type": "string",
+          "enum": ["sandbox", "production"],
+          "maxLength": 20
+        },
+        "darajaShortCode": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "darajaTillNumber": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the account was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the account was last updated"
+        }
+      },
+      "required": [
+        "ownerId",
+        "fullName",
+        "mpesaPhoneNumber",
+        "nationalId",
+        "email",
+        "balance",
+        "currency",
+        "isVerified",
+        "pin",
+        "accountTier",
+        "dailyLimit",
+        "dailySpent",
+        "useLiveDaraja",
+        "darajaEnvironment",
+        "darajaShortCode",
+        "darajaTillNumber",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Immutable M-PESA ledger transaction record",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 20,
+          "pattern": "^[A-Z0-9]+$"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["send", "withdraw", "deposit", "received", "paybill", "buy_goods", "balance_adjustment"],
+          "maxLength": 30
+        },
+        "amount": {
+          "type": "number"
+        },
+        "fee": {
+          "type": "number"
+        },
+        "recipientName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "recipientPhoneOrAccount": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "timestamp": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 40
+        },
+        "status": {
+          "type": "string",
+          "enum": ["completed", "pending", "failed", "cancelled"],
+          "maxLength": 20
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "previousBalance": {
+          "type": "number"
+        },
+        "newBalance": {
+          "type": "number"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["transfer", "withdrawal", "deposit", "merchant", "utility", "system"],
+          "maxLength": 30
+        },
+        "method": {
+          "type": "string",
+          "enum": ["mpesa_phone", "till", "paybill", "agent", "atm", "stk_push", "manual_edit"],
+          "maxLength": 30
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "code",
+        "type",
+        "amount",
+        "fee",
+        "recipientName",
+        "recipientPhoneOrAccount",
+        "timestamp",
+        "status",
+        "notes",
+        "previousBalance",
+        "newBalance",
+        "category",
+        "method",
+        "createdAt"
+      ]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "Live M-PESA SMS and system notification item",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "smsText": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "timestamp": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 40
+        },
+        "isRead": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["sms", "transaction", "security", "system"],
+          "maxLength": 20
+        },
+        "transactionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["high", "normal"],
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "title",
+        "message",
+        "smsText",
+        "timestamp",
+        "isRead",
+        "type",
+        "transactionId",
+        "priority",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserAccount",
+      "description": "User wallet profile and live balance document"
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "User M-PESA transaction ledger subcollection"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": "NotificationItem",
+      "description": "User M-PESA SMS and notification subcollection"
+    }
+  }
+}

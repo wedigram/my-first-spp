@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@keyframes mic-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px 2px rgba(16, 185, 129, 0.35), 0 0 30px 6px rgba(16, 185, 129, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 24px 6px rgba(52, 211, 153, 0.6), 0 0 45px 12px rgba(16, 185, 129, 0.28);
+  }
+}
+
+@keyframes mic-ring-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+.animate-mic-glow {
+  animation: mic-glow-pulse 2.8s infinite ease-in-out;
+}
+
+.animate-mic-ripple {
+  animation: mic-ring-ripple 2.8s infinite cubic-bezier(0.16, 1, 0.3, 1);
+}
+
